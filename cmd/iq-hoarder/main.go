@@ -6,7 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/hokiegeek/iqhoarder"
+	// "github.com/hokiegeek/iqhoarder"
+	iqhooks "github.com/sonatype-nexus-community/gonexus/iq/webhooks"
 )
 
 func main() {
@@ -15,7 +16,22 @@ func main() {
 
 	flag.Parse()
 
-	http.HandleFunc("/hoard", iqhoarder.IQWebhookHandler)
+	// appEvalEvents, _ := iqhooks.ApplicationEvaluationEvents()
+	violationAlertEvents, _ := iqhooks.ViolationAlertEvents()
+
+	go func() {
+		for {
+			select {
+			// case <-appEvalEvents:
+			// 	log.Println("<APP EVAL>")
+			case violation := <-violationAlertEvents:
+				log.Println("<VIOLATION> ReportID: ", violation.ApplicationEvaluation.ReportID)
+			default:
+			}
+		}
+	}()
+
+	http.HandleFunc("/hoard", iqhooks.Listen)
 
 	log.Printf("Starting iq-hoarder on port %d\n", *portPtr)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *portPtr), nil))
